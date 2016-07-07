@@ -2,10 +2,12 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/opencv.hpp"
 #include <math.h>
+#include <fstream>
 #include <vector>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <exception>
 
 static int epsilon = 20;
 
@@ -68,17 +70,31 @@ std::vector<cv::Point2f> extreme_points(cv::Mat image) {
 	return answer;
 }
 
-void my_algo(cv::Mat &image) {
+void my_algo(cv::Mat &image, std::vector<cv::Point2f> &vector_of_points) {
 	cv::Mat after_corner_Harris;
 	cv::Mat gray;
 	cv::cvtColor(image, gray, CV_BGR2GRAY);
 	cv::cornerHarris(gray, after_corner_Harris, 3, 3, 0.04);
 	cv::threshold(after_corner_Harris, gray, 0.0001, 255, cv::THRESH_BINARY);
-	std::vector<cv::Point2f> vector_of_points = extreme_points(gray);
-	draw_contour(image, vector_of_points, 6);
+	vector_of_points = extreme_points(gray);
+	draw_contour(image, vector_of_points, 5);
 
 }
 
+std::vector<cv::Point2f> calc_points(cv::Mat prev_img, cv::Mat next_img, std::vector<cv::Point2f> prev_pts)
+{
+	std::vector<cv::Point2f> next_pts;
+	cv::Mat prev_gray, next_gray;
+	std::vector<uchar> status;
+	std::vector<float> err;
+	cv::cvtColor(prev_img, prev_gray, CV_RGB2GRAY);
+	cv::cvtColor(next_img, next_gray, CV_RGB2GRAY);
+	cv::calcOpticalFlowPyrLK(prev_gray, next_gray, prev_pts, next_pts, status, err);
+	for (int i = 0; i < prev_pts.size(); i++) {
+		if (status[i] == 0) next_pts[i] = prev_pts[i];
+	}
+	return next_pts;
+}
 int main(int argc, char* argv[]) {
 	cv::VideoCapture cap(argv[1]);
 	if (!cap.isOpened()) {
@@ -91,69 +107,28 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	cv::Mat first_frame;
+	cv::Mat first_frame, next_frame, prev_frame;
 	//cap.retrieve(first_frame);
 	if (!cap.read(first_frame)) {
 		std::cout << "Can't read first frame: " << argv[1] << std::endl;
 		return 1;
 	}
 	cv::imshow("first frame", first_frame);
-
-	cv::Mat after_corner_Harris;
-	cv::Mat gray;
-	cv::Mat threshed;
-	cv::cvtColor(first_frame, gray, CV_BGR2GRAY);
-	cv::cornerHarris(gray, after_corner_Harris, 3, 3, 0.04);
-	cv::threshold(after_corner_Harris, threshed, 0.0001, 255, cv::THRESH_BINARY);
-	cv::namedWindow("Display window 3", CV_WINDOW_AUTOSIZE);
-	cv::imshow("Display window 3", threshed);
-	std::vector<cv::Point2f> vector_of_points = extreme_points(threshed);
-	cv::Mat first_frame_copy = first_frame.clone();
-	draw_contour(first_frame_copy, vector_of_points, 6);
-	cv::namedWindow("Display window 5", CV_WINDOW_AUTOSIZE);
-	cv::imshow("Display window 5", first_frame_copy);
-	cv::waitKey(0);
-
-	for (int i = 0; i < threshed.cols; i++) {
-		for (int j = 0; j < threshed.rows; j++) {
-			threshed.at<float>(cv::Point(i, j)) = 0;		
-		}
-	}
-	for (int i = 0; i < vector_of_points.size(); i++) {
-		threshed.at<float>(vector_of_points.at(i)) = 255;
-	}
-
-	cv::namedWindow("Display window 4", CV_WINDOW_AUTOSIZE);
-	cv::imshow("Display window 4", threshed);
-	cv::waitKey(0);
-	/*
-	cv::Mat color_gray, color_gray_frame, next_frame;
-	cap.read(next_frame);
-	std::vector<float> err;
-	std::vector<uchar> status;
-	cv::cvtColor(first_frame, color_gray, CV_BGR2GRAY);
-	cv::cvtColor(next_frame, color_gray_frame, CV_BGR2GRAY);
-	std::vector<cv::Point2f> vector_of_points_2(color_gray.cols * color_gray.rows);
-	for (int i = 0; i < vector_of_points.size(); i++) {
-		vector_of_points_2.at(i) = vector_of_points.at(i);
-	}
-	std::vector<cv::Point2f> vector_of_points_after;
-	cv::calcOpticalFlowPyrLK(color_gray, color_gray_frame, vector_of_points, vector_of_points_after, status, err);	/*
-	for (int i = 0; i < vector_of_points.size(); i++) {
-		cv::Point2f current_point(vector_of_points.at(i).x, vector_of_points.at(i).y);
-		prevPts.push_back(current_point);
-	}
-	*/
-	cv::Mat frame;
+	std::vector<cv::Point2f> prev_points, next_points;
+	prev_frame = first_frame.clone();
+	my_algo(first_frame, prev_points);
+	cv::imshow("window", first_frame);
 	for (;;) {
-		if (!cap.read(frame))
+		if (!cap.read(next_frame))
 			break;
-		
-		my_algo(frame);
-		cv::imshow("window", frame);
+		next_points = calc_points(prev_frame, next_frame, prev_points);
+		draw_contour(next_frame, next_points, 5);
+		cv::imshow("window", next_frame);
 		char key = cvWaitKey(1);
 		if (key == 27)
 			break;
+		prev_points = next_points;
+		prev_frame = next_frame.clone();
 	}
 	cv::destroyAllWindows();
 	return 0;
