@@ -109,12 +109,13 @@ int main(int argc, char* argv[]) {
 			key = cvWaitKey(1);
 			if (key == 27)
 				break;
-			if (key == 112 || is_paused) {
+			if (key == 32 || is_paused) {
+				if (key == 32 && !is_paused) key = 0;
 				is_paused = 1;
-				while (key != 114) {
+				while (key != 32) {
 					key = cvWaitKey(1);
 					//b
-					if (key == 98) {
+					if (key == 97) {
 						if (frame_number >= 2) {
 							frame_number = frame_number - 2;
 							//std::cout << frame_number << std::endl;
@@ -125,12 +126,12 @@ int main(int argc, char* argv[]) {
 						}
 					}
 					//n
-					if (key == 110) {
+					if (key == 100) {
 						int a = 0;
 						break;
 					}
 				}
-				if (key == 114) is_paused = 0;
+				if (key == 32) is_paused = 0;
 			}
 			prev_points = next_points;
 			prev_frame = next_frame.clone();
@@ -140,9 +141,8 @@ int main(int argc, char* argv[]) {
 	}
 	float accuracy = (static_cast<float>(detected_frames) / static_cast<float>(total_frames)) * 100;
 	std::cout.precision(2);
-	std::cout << std::endl << "Total frames : " << total_frames <<std::endl;
+	std::cout << std::endl << "Total frames : " << total_frames << std::endl;
 	std::cout << std::endl << "Frames detected : " << detected_frames << std::endl;
 	std::cout << std::endl << "Accuracy : " << accuracy << "%" << std::endl;
 	return 0;
 }
-
