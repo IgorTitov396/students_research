@@ -1,5 +1,7 @@
 #include "doc_tracker.h"
 
+#include "opencv2/imgproc/imgproc.hpp"
+
 int main(int argc, char* argv[]) {
 	int total_frames = 0, detected_frames = 0, is_paused = 0;
 	if (argc != 2) {
