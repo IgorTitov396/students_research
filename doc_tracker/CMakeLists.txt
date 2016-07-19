@@ -1,8 +1,14 @@
 find_package(OpenCV REQUIRED)
 
-set(SOURCES "../doc_tracker.cpp")
+project(doc_tracker)	
 
-set(HEADERS "../doc_tracker.h")
+set(SOURCES "doc_tracker.cpp")
+
+set(HEADERS "doc_tracker.h")
+
+add_library(doc_tracker STATIC ${SOURCES})
+
+target_link_libraries(doc_tracker ${OpenCV_LIBS})
 
 add_subdirectory(runner)
 
