@@ -1,4 +1,9 @@
-project(doc_tracker)
 find_package(OpenCV REQUIRED)
-add_executable(doc_tracker runner.cpp viewer.cpp doc_tracker.h)
-target_link_libraries(doc_tracker ${OpenCV_LIBS})
+
+set(SOURCES "../doc_tracker.cpp")
+
+set(HEADERS "../doc_tracker.h")
+
+add_subdirectory(runner)
+
+add_subdirectory(viewer)
